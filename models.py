@@ -41,9 +41,11 @@ class User(Base):
 
   id = Column(Integer, primary_key=True)
   email = Column(String)
+  username = Column(String)
   nama = Column(String)
   password = Column(String)
   terverifikasi = Column(Boolean)
+  admin = Column(Boolean)
 
   def serialize(self):
     d = Serializer.serialize(self)
