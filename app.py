@@ -1,30 +1,32 @@
-from flask import Flask, jsonify, request, make_response, session
+from flask import Flask, jsonify, request, make_response
 from flask_pydantic import validate
 from flask_mail import Mail, Message
 import pyotp
 import controllers, models, schemas
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine
+from database import SessionLocal
 from datetime import datetime, timedelta
 import jwt
 from functools import wraps
-from flask_mail import Mail, Message
-import time
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
+# Load environment variables
+load_dotenv()
 # CONFIGS
 #JWT
-app.config['SECRET_KEY'] = 'vIpMWhXXrRLQR5Dze2GTKozaTLAZeLMt'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 # MAIL
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'smarteducationtst@gmail.com'
-app.config['MAIL_PASSWORD'] = 'jkdvdweqmjwvknao'
+app.config['MAIL_SERVER']= os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') 
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') 
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
 mail = Mail(app)
-totp = pyotp.TOTP('WUXOZ4AB7CFP6ZDH5KSUSIRTFWZ2BOTC', interval=60)
+totp = pyotp.TOTP(os.getenv('TOTP_KEY') , interval=120)
 
 def token_required(f):
     @wraps(f)
@@ -33,15 +35,16 @@ def token_required(f):
         if 'Authorization' in request.headers:
             token = request.headers['Authorization']
         if not token:
-            return jsonify({'error' : 'Memerlukan akses token.'}), 401
-  
+            return make_response(jsonify({'error' : 'Memerlukan akses token.'}), 401)
         try:
           token = token.replace('Bearer ', '')
           data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
           current_user = controllers.get_user_by_id(db=get_db(), id=data['user_id'])
-        except:
+        except Exception as e:
+          if(str(e) == 'Signature has expired'):
+            return make_response(jsonify({'error' : 'Session telah berakhir! Mohon masuk kembali.'}), 401)  
           return make_response(jsonify({'error' : 'Token invalid!'}), 401)
-        return  f(current_user.serialize(), *args, **kwargs)
+        return f(current_user.serialize(), *args, **kwargs)
     return decorated
 
 @app.errorhandler(400)
@@ -93,7 +96,7 @@ def signup(body: schemas.CreateUser):
     recipients = [user.email]
   )
   user_otp = totp.now()
-  msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 1 menit.'
+  msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
   mail.send(msg)
   return jsonify({'success': 'Berhasil membuat akun. Silahkan verifikasi OTP.'})
 
@@ -111,7 +114,7 @@ def signin(body: schemas.LoginUser):
     recipients = [user.email]
     )
   user_otp = totp.now()
-  msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 1 menit.'
+  msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
   mail.send(msg)
   return jsonify({'success': 'Login berhasil. Silahkan verifikasi OTP.'})
 
@@ -140,8 +143,8 @@ def verify_user(user, query: schemas.UserVerification):
   if not user['admin']:
     return make_response(jsonify({'error': 'Akun tidak memiliki kuasa.'}), 401)
   if controllers.verify_user(db=db, user=db_user):
-    return jsonify({'success': 'Berhasil memverifikasi user.'})
-  return make_response(jsonify({'error': 'Kesalahan pada server!'}), 500)
+    return jsonify({'success': 'Berhasil memverifikasi akun.'})
+  return make_response(jsonify({'error': 'Kesalahan server.'}), 500)
 
 @app.route("/get-all-sma", methods=["GET"])
 @token_required
