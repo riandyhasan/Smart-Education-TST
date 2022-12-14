@@ -9,4 +9,4 @@ COPY . ./
 RUN pip install -r requirements.txt
 
 # Run the app
-CMD ["flask", "run", "--host=0.0,0.0", "--port=8080"]
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
