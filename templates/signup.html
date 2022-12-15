@@ -74,7 +74,7 @@
         outline: none;
       }
     </style>
-    <title>Smart Education - Sign In</title>
+    <title>Smart Education - Sign Up</title>
   </head>
 
   <body>
@@ -89,16 +89,22 @@
             fill="white" />
         </svg>
       </div>
-      <form action="/signin" method="post">
+      <form action="/signup" method="post">
+        <div class="form-col">
+          <input type="text" name="email" placeholder="EMAIL" />
+        </div>
+        <div class="form-col">
+          <input type="text" name="name" placeholder="NAME" />
+        </div>
         <div class="form-col">
           <input type="text" name="username" placeholder="USERNAME" />
         </div>
         <div class="form-col">
           <input type="password" name="password" placeholder="PASSWORD" />
         </div>
-        <button type="submit">SIGN IN</button>
+        <button type="submit">SIGN UP</button>
       </form>
-      <p>Don't have an account? <a href="/register" style="color: white; text-decoration: underline">Sign Up</a></p>
+      <p>Already have an account? <a href="/" style="color: white; text-decoration: underline">Sign In</a></p>
     </div>
   </body>
 </html>

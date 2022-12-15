@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request, make_response, render_template
 from flask_pydantic import validate
 from flask_mail import Mail, Message
 import pyotp
@@ -28,7 +28,7 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
-PARTNER_API = 'http://127.0.0.1:5000'
+PARTNER_API = 'http://20.24.70.52'
 
 mail = Mail(app)
 totp = pyotp.TOTP(os.getenv('TOTP_KEY') , interval=120)
@@ -81,10 +81,24 @@ def get_db():
 
 @app.route("/")
 def index():
-    if (get_db()):
-      return "Connected to database"
-    else:
-      return "Database is not connected"
+  return render_template("index.html")
+
+@app.route("/register")
+def register():
+  return render_template("signup.html")
+
+@app.route("/otp")
+def otp():
+  return render_template("otp.html")
+
+@app.route("/user-input")
+def user_input():
+  return render_template("userinput.html")
+
+@app.route("/recommendation")
+def recommendation():
+  return render_template("recommendation.html")
+
 
 @app.route("/signup", methods=['POST'])
 @validate()
@@ -122,6 +136,20 @@ def signin(body: schemas.LoginUser):
   msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
   mail.send(msg)
   return jsonify({'success': 'Login berhasil. Silahkan verifikasi OTP.'})
+
+@app.route("/signin-without-otp", methods=["POST"])
+@validate()
+def signin_no_otp(body: schemas.LoginUser):
+  user = controllers.get_user_by_username(db=get_db(), username=body.username)
+  if user is None:
+    return make_response(jsonify({'error': 'Username atau password salah.'}), 400)
+  if user.password != controllers.hash_password(body.password):
+    return make_response(jsonify({'error': 'Username atau password salah.'}), 400)
+  token = jwt.encode({
+      'user_id': user.id,
+      'exp' : datetime.utcnow() + timedelta(minutes = 60)
+  }, app.config['SECRET_KEY'])
+  return jsonify({'access_token': token})
 
 @app.route("/verify-otp", methods=['GET'])
 @validate()
@@ -263,13 +291,23 @@ def get_recomendation(user, query: schemas.Coordinate):
   lat = query.lat
   lon = query.lon
   if lat and lon:
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+    data = {
+      'username': 'riandyhsn',
+      'password': 'password'
+    }
+    response_login = requests.get(PARTNER_API+'/signin-without-otp', headers=headers, data=data)
+    token = response_login.json()['access_token']
     try:
       point = {'lat': lat, 'lon': lon}
       sma = controllers.get_sma_nearest(db=get_db(), lat=lat, lon=lon)
       headers = {
               'accept': 'application/json',
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer '
+              'Authorization': 'Bearer ' + token
           }
       current_kel = None
       data_kel = [] 

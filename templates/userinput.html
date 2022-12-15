@@ -7,12 +7,30 @@
         font-family: 'Montserrat';
         font-size: 22px;
         width: 100%;
-        background-color: #2148c0;
+        background-color: white;
         /* background-image: url('/templates/bg.png'); */
         padding: 0;
         margin: 0;
         height: 100vh;
+        color: black;
+      }
+      nav {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        background-color: #2148c0;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 16px;
+        position: relative;
         color: white;
+      }
+      nav svg {
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
       }
       .container {
         width: 100%;
@@ -21,10 +39,6 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-      }
-      .title {
-        font-weight: 700;
-        font-size: 76px;
       }
       form {
         display: flex;
@@ -39,9 +53,9 @@
       }
       .form-col input {
         background: transparent;
-        border: 2px solid white;
-        color: white;
+        border: 2px solid #2148c0;
         width: 400px;
+        border-radius: 4px;
         height: 40px;
         padding-left: 10px;
         font-size: 14px;
@@ -49,6 +63,11 @@
       ::placeholder {
         /* Chrome, Firefox, Opera, Safari 10.1+ */
         color: white;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
       }
       button {
         font-weight: 600;
@@ -59,28 +78,35 @@
         border: none;
         width: 300px;
         height: 40px;
-        background: #ffffff;
+        background: #2148c0;
         box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
         border-radius: 4px;
+        color: white;
         margin-top: 15px;
       }
-      p {
-        font-weight: 500;
-        font-size: 16px;
+      .title {
+        font-size: 18px;
+        text-align: center;
+        text-transform: uppercase;
+        font-weight: 600;
       }
-      input:focus,
-      textarea:focus,
-      select:focus {
-        outline: none;
+      .helper {
+        font-weight: 300;
+        font-size: 16px;
+        line-height: 20px;
+        /* identical to box height, or 143% */
+
+        text-align: center;
+        text-transform: uppercase;
       }
     </style>
-    <title>Smart Education - Sign In</title>
+    <title>Smart Education - Highschool Recommendation</title>
   </head>
 
   <body>
-    <div class="container">
+    <nav>
       <div>
-        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="60" height="60" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M143.75 136.97L100 161.579L56.25 136.97V110.969L43.75 104.025V144.28L100 175.921L156.25 144.28V104.025L143.75 110.969V136.97Z"
             fill="white" />
@@ -89,16 +115,24 @@
             fill="white" />
         </svg>
       </div>
+      <h1>High school recommendation</h1>
+    </nav>
+    <div class="container">
+      <p class="title" style="max-width: 500px; line-height: 30px">
+        we will give you recommendation for the best high school around you based on your location
+      </p>
+      <p class="helper">please input your location</p>
       <form action="/signin" method="post">
-        <div class="form-col">
-          <input type="text" name="username" placeholder="USERNAME" />
+        <div style="display: flex; align-items: center; justify-content: center; gap: 20px">
+          <div class="form-col">
+            <input type="number" name="lat" placeholder="LATITUDE" />
+          </div>
+          <div class="form-col">
+            <input type="number" name="lon" placeholder="LONGITUDE" />
+          </div>
         </div>
-        <div class="form-col">
-          <input type="password" name="password" placeholder="PASSWORD" />
-        </div>
-        <button type="submit">SIGN IN</button>
+        <button type="submit">GO!</button>
       </form>
-      <p>Don't have an account? <a href="/register" style="color: white; text-decoration: underline">Sign Up</a></p>
     </div>
   </body>
 </html>
