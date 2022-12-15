@@ -122,13 +122,13 @@
         we will give you recommendation for the best high school around you based on your location
       </p>
       <p class="helper">please input your location</p>
-      <form action="/signin" method="post">
+      <form action="/get-recommendation" method="post">
         <div style="display: flex; align-items: center; justify-content: center; gap: 20px">
           <div class="form-col">
-            <input type="number" name="lat" placeholder="LATITUDE" />
+            <input type="text" name="lat" placeholder="LATITUDE" />
           </div>
           <div class="form-col">
-            <input type="number" name="lon" placeholder="LONGITUDE" />
+            <input type="text" name="lon" placeholder="LONGITUDE" />
           </div>
         </div>
         <button type="submit">GO!</button>

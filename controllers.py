@@ -101,8 +101,8 @@ def get_user_by_email(db: Session, email: str):
 def get_user_by_id(db: Session, id: int):
   return db.query(models.User).filter(models.User.id == id).first()
 
-def add_user(db: Session, user: schemas.CreateUser):
-  db_user = models.User(email=user.email, username=user.username, nama=user.nama, password=hash_password(user.password), terverifikasi=False, admin=False)
+def add_user(db: Session, user):
+  db_user = models.User(email=user['email'], username=user['username'], nama=user['nama'], password=hash_password(user['password']), terverifikasi=False, admin=False)
   db.add(db_user)
   db.commit()
   db.refresh(db_user)

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, make_response, render_template
+from flask import Flask, jsonify, request, make_response, render_template, redirect
 from flask_pydantic import validate
 from flask_mail import Mail, Message
 import pyotp
@@ -95,38 +95,37 @@ def otp():
 def user_input():
   return render_template("userinput.html")
 
-@app.route("/recommendation")
-def recommendation():
-  return render_template("recommendation.html")
-
-
 @app.route("/signup", methods=['POST'])
-@validate()
-def signup(body: schemas.CreateUser):
-  db = db=get_db()
-  if controllers.get_user_by_username(db=db, username=body.username):
-    return make_response(jsonify({'error': 'Username telah terdaftar. Silahklan login.'}), 400)
-  if controllers.get_user_by_email(db=db, email=body.email):
-    return make_response(jsonify({'error': 'Email telah terdaftar.'}), 400)
-  user = controllers.add_user(db=db, user=body)
-  msg = Message(
-    'Smart Education - Highschool Recommendation',
-    sender = app.config['MAIL_USERNAME'],
-    recipients = [user.email]
-  )
-  user_otp = totp.now()
-  msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
-  mail.send(msg)
-  return jsonify({'success': 'Berhasil membuat akun. Silahkan verifikasi OTP.'})
+# @validate()
+def signup():
+  try:
+    body = request.form
+    db = db=get_db()
+    if controllers.get_user_by_username(db=db, username=body['username']):
+      return make_response(jsonify({'error': 'Username telah terdaftar. Silahklan login.'}), 400)
+    if controllers.get_user_by_email(db=db, email=body['email']):
+      return make_response(jsonify({'error': 'Email telah terdaftar.'}), 400)
+    user = controllers.add_user(db=db, user=body)
+    msg = Message(
+      'Smart Education - Highschool Recommendation',
+      sender = app.config['MAIL_USERNAME'],
+      recipients = [user.email]
+    )
+    user_otp = totp.now()
+    msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
+    mail.send(msg)
+  except Exception as e:
+    return jsonify(str(e)), 500
+  return redirect('/otp')
 
 @app.route("/signin", methods=['POST'])
-@validate()
-def signin(body: schemas.LoginUser):
-  print(body)
-  user = controllers.get_user_by_username(db=get_db(), username=body.username)
+# @validate()
+def signin():
+  body = request.form
+  user = controllers.get_user_by_username(db=get_db(), username=body['username'])
   if user is None:
     return make_response(jsonify({'error': 'Username atau password salah.'}), 400)
-  if user.password != controllers.hash_password(body.password):
+  if user.password != controllers.hash_password(body['password']):
     return make_response(jsonify({'error': 'Username atau password salah.'}), 400)
   msg = Message(
     'Smart Education - Highschool Recommendation',
@@ -136,7 +135,7 @@ def signin(body: schemas.LoginUser):
   user_otp = totp.now()
   msg.body = f'Kode OTP Anda adalah: {user_otp}. Mohon untuk tidak berikan Kode OTP Anda ke siapapun! Kode ini akan berlaku selama 2 menit.'
   mail.send(msg)
-  return jsonify({'success': 'Login berhasil. Silahkan verifikasi OTP.'})
+  return redirect('/otp')
 
 @app.route("/signin-without-otp", methods=["POST"])
 @validate()
@@ -152,18 +151,18 @@ def signin_no_otp(body: schemas.LoginUser):
   }, app.config['SECRET_KEY'])
   return jsonify({'access_token': token})
 
-@app.route("/verify-otp", methods=['GET'])
-@validate()
-def verify_otp(body: schemas.UserOTP):
-  user = controllers.get_user_by_username(db=get_db(), username=body.username)
+@app.route("/verify-otp", methods=['GET', 'POST'])
+def verify_otp():
+  body = request.form
+  user = controllers.get_user_by_username(db=get_db(), username=body['username'])
   if not user:
     return make_response(jsonify({'error': 'Akun tidak ada.'}), 401)
-  if totp.verify(body.otp):
+  if totp.verify(body['otp']):
     token = jwt.encode({
               'user_id': user.id,
               'exp' : datetime.utcnow() + timedelta(minutes = 60)
           }, app.config['SECRET_KEY'])
-    return jsonify({'access_token': token})
+    return redirect('/user-input')
   return make_response(jsonify({'error': 'OTP Salah.'}), 401)
 
 @app.route("/verify-user", methods=['PUT'])
@@ -282,15 +281,13 @@ def delete_data_sma(user):
   else:
     return make_response(jsonify({'error': 'Kesalahan request method.'}), 400)
 
-@app.route("/get-recommendation", methods=["GET"])
-@token_required
+@app.route("/get-recommendation", methods=["GET", "POST"])
 @validate()
-def get_recomendation(user, query: schemas.Coordinate):
-  if (not user['terverifikasi']):
-    return make_response(jsonify({'error': 'Akun belum terverifikasi.'}), 401)
+def get_recomendation():
   recommendation = []
-  lat = query.lat
-  lon = query.lon
+  data = request.form
+  lat = data['lat']
+  lon = data['lon']
   if lat and lon:
     headers = {
         'accept': 'application/json',
@@ -331,12 +328,14 @@ def get_recomendation(user, query: schemas.Coordinate):
       i = 0
       for r in recommendation:
         if i < 3:
-          res.append(r)
+          res.append(r) 
         else:
           break
         i += 1
-      return res
-    except:
+      print(res)
+      return render_template("recommendation.html", data=res)
+    except Exception as e:
+      print(e)
       return make_response(jsonify({'error': 'Server error.'}), 500)
   else:
     return make_response(jsonify({'error': 'Kesalahan request.'}), 400)

@@ -152,22 +152,16 @@
           <th>Jarak</th>
           <th>Keketatan</th>
         </tr>
+        {% for _ in data %}
         <tr>
-          <td>Alfreds Futterkiste</td>
-          <td>Maria Anders</td>
-          <td>Germany</td>
-          <td>erkiste</td>
-          <td>Maria Anders</td>
-          <td>Germany</td>
+          <td>{{ loop.index }}</td>
+          <td>{{ _.nama_sekolah }}</td>
+          <td>{{ _.alamat }}</td>
+          <td>{{ _.akreditasi }}</td>
+          <td>{{ _.jarak }} km</td>
+          <td>{{ _.keketatan }}</td>
         </tr>
-        <tr>
-          <td>Alfreds Futterkiste</td>
-          <td>Maria Anders</td>
-          <td>Germany</td>
-          <td>erkiste</td>
-          <td>Maria Anders</td>
-          <td>Germany</td>
-        </tr>
+        {% endfor %}
       </table>
     </div>
   </body>
