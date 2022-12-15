@@ -28,7 +28,7 @@ jobs:
         run: docker push $(echo $IMAGE_NAME)
 
   deploy-to-azure:
-    runs-on: ubuntu 16.04
+    runs-on: ubuntu-latest
     needs: build-and-push
 
     steps:
