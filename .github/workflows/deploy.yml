@@ -52,3 +52,4 @@ jobs:
             yes | head -1
             # Run image and open port
             docker run -d -p 80:5000 --name yandy-container riandyhasan/school-recommendation
+            docker cp /home/vmtst/yandy/.env yandy-container:/app/.env

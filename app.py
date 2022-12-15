@@ -122,6 +122,7 @@ def signup(body: schemas.CreateUser):
 @app.route("/signin", methods=['POST'])
 @validate()
 def signin(body: schemas.LoginUser):
+  print(body)
   user = controllers.get_user_by_username(db=get_db(), username=body.username)
   if user is None:
     return make_response(jsonify({'error': 'Username atau password salah.'}), 400)
@@ -299,7 +300,7 @@ def get_recomendation(user, query: schemas.Coordinate):
       'username': 'riandyhsn',
       'password': 'password'
     }
-    response_login = requests.get(PARTNER_API+'/signin-without-otp', headers=headers, data=data)
+    response_login = requests.post(PARTNER_API+'/signin-without-otp', headers=headers, json=data)
     token = response_login.json()['access_token']
     try:
       point = {'lat': lat, 'lon': lon}
