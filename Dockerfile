@@ -1,12 +1,13 @@
 FROM python:3.8
 
 # copy application code
-ENV APP_HOME /app
-WORKDIR $APP_HOME
-COPY . ./
+WORKDIR /app
+COPY . /app
 
 # install dependencies
 RUN pip install -r requirements.txt
 
+EXPOSE 5000
+
 # Run the app
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]

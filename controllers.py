@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
 import models, schemas
 import geopy.distance
-import random
 import hashlib
-import jwt
 
 def get_all_sma(db: Session):
   return (models.Serializer).serialize_list(db.query(models.SMA).all())
@@ -126,3 +124,49 @@ def hash_password(password):
   sha256.update(password.encode())
   hashed_password = sha256.hexdigest()
   return hashed_password
+
+def get_penduduk_kelurahan(kelurahan):
+  res = {}
+  total = 0
+  kel = ''
+  for _ in kelurahan:
+    kel = _['nama_kelurahan']
+    if _['usia'] == '15-19':
+      total += _['jumlah_penduduk']
+  res = { 'kelurahan': kel, 'jumlah_penduduk': total }
+  return res
+
+def calculate_keketatan(sma, kel):
+  keketatan = 0
+  for _ in kel:
+    if _['kelurahan'] == sma['kelurahan']:
+      keketatan = sma['jumlah_siswa'] / _['jumlah_penduduk']
+      break
+  return keketatan
+
+def calculate_jarak(point1, point2):
+  coord_1 = (point1['lat'], point1['lon'])
+  coord_2 = (point2['lat'], point2['lon'])
+  return geopy.distance.geodesic(coord_1, coord_2).km
+
+def sort_by_jarak(list):
+  return sorted(list, key=lambda d: d['jarak']) 
+
+def sort_by_keketatan(list):
+  return sorted(list, key=lambda d: d['keketatan']) 
+
+def sort_by_akreditasi(list):
+  akre_a = []
+  akre_b = []
+  akre_ta = []
+  for l in list:
+    if l['akreditasi'] == 'A':
+      akre_a.append(l)
+    elif l['akreditasi'] == 'B':
+      akre_b.append(l)
+    else:
+      akre_ta.append(l)
+  return akre_a + akre_b + akre_ta
+
+def sort_recommendations(list):
+  return sort_by_akreditasi(sort_by_jarak(sort_by_keketatan(list)))

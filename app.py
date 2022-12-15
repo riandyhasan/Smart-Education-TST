@@ -10,7 +10,10 @@ import jwt
 from functools import wraps
 import os
 from dotenv import load_dotenv
+import logging
+import requests
 
+logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 # Load environment variables
 load_dotenv()
@@ -24,6 +27,8 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') 
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
+
+PARTNER_API = 'http://127.0.0.1:5000'
 
 mail = Mail(app)
 totp = pyotp.TOTP(os.getenv('TOTP_KEY') , interval=120)
@@ -186,7 +191,6 @@ def get_nearest_sma(user, query: schemas.Coordinate):
     return make_response(jsonify({'error': 'Akun belum terverifikasi.'}), 401)
   lat = query.lat
   lon = query.lon
-  lon = request.args.get('lon')
   if lat and lon:
     sma = controllers.get_sma_nearest(db=get_db(), lat=lat, lon=lon)
     return sma  
@@ -249,5 +253,54 @@ def delete_data_sma(user):
   else:
     return make_response(jsonify({'error': 'Kesalahan request method.'}), 400)
 
+@app.route("/get-recommendation", methods=["GET"])
+@token_required
+@validate()
+def get_recomendation(user, query: schemas.Coordinate):
+  if (not user['terverifikasi']):
+    return make_response(jsonify({'error': 'Akun belum terverifikasi.'}), 401)
+  recommendation = []
+  lat = query.lat
+  lon = query.lon
+  if lat and lon:
+    try:
+      point = {'lat': lat, 'lon': lon}
+      sma = controllers.get_sma_nearest(db=get_db(), lat=lat, lon=lon)
+      headers = {
+              'accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer '
+          }
+      current_kel = None
+      data_kel = [] 
+      for _ in sma:
+        if _['kelurahan'] != current_kel:
+          current_kel = _['kelurahan']
+          query = '/get-kelurahan?nama_kelurahan=' + current_kel
+          response = requests.get(PARTNER_API+query, headers=headers)
+          data_kel.append(controllers.get_penduduk_kelurahan(response.json()))
+        point2 = {'lat': _['latitude'], 'lon': _['longitude']}
+        recommendation.append({ 
+          'nama_sekolah': _['nama_sekolah'], 
+          'alamat': _['alamat'], 
+          'jarak': controllers.calculate_jarak(point, point2), 
+          'akreditasi': _['akreditasi'],
+          'keketatan': controllers.calculate_keketatan(_, data_kel) 
+          })
+      recommendation = controllers.sort_recommendations(recommendation)
+      res = []
+      i = 0
+      for r in recommendation:
+        if i < 3:
+          res.append(r)
+        else:
+          break
+        i += 1
+      return res
+    except:
+      return make_response(jsonify({'error': 'Server error.'}), 500)
+  else:
+    return make_response(jsonify({'error': 'Kesalahan request.'}), 400)
+
 if __name__ == '__main__':
-  app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+  app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
