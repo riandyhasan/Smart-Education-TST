@@ -69,7 +69,7 @@ def handle_404_error(_error):
 
 @app.errorhandler(500)
 def handle_500_error(_error):
-  return make_response(jsonify({'error': 'Server error'}), 500)
+  return make_response(jsonify({'error': 'Server error.'}), 500)
 
   
 def get_db():
